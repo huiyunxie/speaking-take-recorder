@@ -554,7 +554,11 @@ function speak(text, { rate = state.rate, onend } = {}) {
     const guard = setTimeout(finish, Math.max(8000, text.length * 130));
     u.onend = finish;
     u.onerror = finish;
-    speechSynthesis.speak(u);
+    try {
+      speechSynthesis.speak(u);
+    } catch (err) {
+      finish();
+    }
   });
 }
 
