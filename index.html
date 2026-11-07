@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EchoTake · 口语录音台</title>
+<meta name="description" content="本地优先的英语口语录音台：示范、录音、A/B 对比、导出到 Obsidian。" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26"><path d="M6 16c0-5.5 4.5-10 10-10s10 4.5 10 10-4.5 10-10 10S6 21.5 6 16Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 16h3l2-5 3 10 2-5h2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>EchoTake</h1>
+        <p>口语录音台 · say it, hear it, fix it</p>
+      </div>
+    </div>
+
+    <div class="status" id="status" title="麦克风状态">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">麦克风未启用</span>
+      <span class="status-meta" id="deviceMeta"></span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn ghost" id="settingsBtn" title="设置">设置</button>
+      <button class="btn primary" id="exportBtn" title="导出到 Obsidian">导出</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="queue">
+      <div class="queue-head">
+        <h2>练习队列</h2>
+        <button class="icon-btn" id="addPrompt" title="新增一句">＋</button>
+      </div>
+      <div class="prompt-list" id="promptList"></div>
+      <div class="queue-foot">
+        <kbd>Space</kbd> 录音 / 停止　<kbd>R</kbd> 示范　<kbd>P</kbd> 回放
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="stage-head">
+        <span class="stage-index" id="stageIndex">第 1 / 1 句</span>
+        <div class="stage-tools">
+          <button class="btn ghost" id="speakBtn">▶ 听示范</button>
+          <label class="rate">速度
+            <input id="rate" type="range" min="0.6" max="1.2" step="0.05" value="0.9" />
+            <span id="rateVal">0.90×</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="prompt-box">
+        <textarea id="promptText" rows="3" placeholder="粘贴教练给的示范句，或按 English speaking loop 的 chunk 逐句粘贴…" spellcheck="false"></textarea>
+      </div>
+
+      <div class="record-row">
+        <button id="recordBtn" class="record" aria-label="开始录音">
+          <span class="rec-inner"><span class="rec-square"></span></span>
+        </button>
+
+        <div class="meter-wrap">
+          <canvas id="wave" height="96"></canvas>
+          <div class="meter"><div class="meter-fill" id="meterFill"></div></div>
+          <div class="meter-labels">
+            <span>-60</span>
+            <span id="dbText">-∞ dB</span>
+            <span>0</span>
+          </div>
+        </div>
+
+        <div class="timer" id="timer">00:00.0</div>
+      </div>
+
+      <div class="takes-head">
+        <h3>我的 take <span class="count" id="takeCount">0</span></h3>
+        <div class="takes-actions">
+          <button class="btn ghost" id="abBtn" disabled>示范 ↔ 我的</button>
+        </div>
+      </div>
+      <div class="takes" id="takes">
+        <div class="empty" id="takesEmpty">还没有 take。按空格，说第一遍。</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="drawer-mask hidden" id="drawerMask"></div>
+  <aside class="drawer hidden" id="drawer" aria-label="设置">
+    <div class="drawer-head">
+      <h2>设置</h2>
+      <button class="icon-btn" id="closeDrawer" title="关闭">✕</button>
+    </div>
+
+    <div class="field">
+      <label for="deviceSelect">输入设备</label>
+      <select id="deviceSelect"></select>
+      <p class="hint" id="deviceHint">插入 PD200X 后，点「刷新设备」。</p>
+      <button class="btn ghost small" id="refreshDevices">刷新设备</button>
+    </div>
+
+    <div class="field">
+      <label for="voiceSelect">示范音色（TTS）</label>
+      <select id="voiceSelect"></select>
+      <p class="hint">用于「听示范」和 A/B 的参考音；不影响录音。</p>
+    </div>
+
+    <div class="field row">
+      <label class="check"><input type="checkbox" id="autoPlay" checked /> 录完自动回放</label>
+    </div>
+
+    <div class="field">
+      <label>当前输入</label>
+      <dl class="kv">
+        <div><dt>采样率</dt><dd id="infoRate">—</dd></div>
+        <div><dt>声道</dt><dd id="infoChannels">—</dd></div>
+        <div><dt>回声消除</dt><dd id="infoEC">—</dd></div>
+        <div><dt>自动增益</dt><dd id="infoAGC">—</dd></div>
+      </dl>
+      <p class="hint">录音时会自动关闭回声消除、降噪和自动增益，保留真实声音。</p>
+    </div>
+
+    <div class="field danger-field">
+      <label>数据</label>
+      <p class="hint">录音只存在这台电脑的浏览器 IndexedDB 里，不上传云端。</p>
+      <button class="btn danger small" id="clearBtn">清空全部练习</button>
+    </div>
+
+    <div class="drawer-foot">
+      <a href="https://github.com/huiyunxie/speaking-take-recorder" target="_blank" rel="noreferrer" id="repoLink">GitHub · speaking-take-recorder</a>
+      <span>v1.0 · MIT</span>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
